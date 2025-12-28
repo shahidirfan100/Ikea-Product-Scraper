@@ -1,6 +1,6 @@
 // IKEA Product Scraper - Production-ready implementation
 import { Actor, log } from 'apify';
-import { CheerioCrawler, Dataset } from 'crawlee';
+import { CheerioCrawler, Dataset, sleep } from 'crawlee';
 import { gotScraping } from 'got-scraping';
 
 const SPECIAL_CATEGORY_MAP = {
@@ -564,7 +564,7 @@ async function main() {
                 requestHandlerTimeoutSecs: 90,
                 preNavigationHooks: [
                     async (_, goToOptions) => {
-                        await Actor.sleep(500 + Math.random() * 700);
+                        await sleep(500 + Math.random() * 700);
                         goToOptions.headers = {
                             ...defaultHeaders,
                             'sec-ch-ua': '"Google Chrome";v="131", "Chromium";v="131", "Not_A Brand";v="24"',
@@ -625,7 +625,7 @@ async function main() {
                 preNavigationHooks: [
                     async (_, goToOptions) => {
                         const delay = 800 + Math.random() * 1500;
-                        await Actor.sleep(delay);
+                        await sleep(delay);
                         goToOptions.headers = {
                             ...defaultHeaders,
                             'sec-ch-ua': '"Google Chrome";v="131", "Chromium";v="131", "Not_A Brand";v="24"',
