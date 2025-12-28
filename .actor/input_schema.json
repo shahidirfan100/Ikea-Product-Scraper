@@ -16,7 +16,7 @@
       "title": "Country",
       "type": "string",
       "description": "IKEA country code (e.g., 'gb' for United Kingdom, 'us' for United States, 'de' for Germany)",
-      "editor": "textfield",
+      "editor": "select",
       "default": "gb",
       "prefill": "gb",
       "enum": ["gb", "us", "de", "fr", "se", "no", "dk", "fi", "nl", "be", "ch", "at", "it", "es", "pt", "pl", "cz", "sk", "hu", "ro", "hr", "si", "ie", "ca", "au", "jp", "kr", "cn", "tw", "hk", "sg", "my", "th", "ae"],
