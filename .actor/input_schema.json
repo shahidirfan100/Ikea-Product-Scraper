@@ -1,0 +1,84 @@
+{
+  "title": "IKEA Product Scraper",
+  "description": "Extract product details from IKEA catalog including prices, images, ratings, and specifications. Supports multiple countries and categories.",
+  "type": "object",
+  "schemaVersion": 1,
+  "properties": {
+    "startUrls": {
+      "title": "Start URLs",
+      "type": "array",
+      "description": "List of IKEA URLs to scrape (e.g., category pages, search results, or specific product pages). Leave empty to use default new products page.",
+      "editor": "requestListSources",
+      "default": [],
+      "prefill": []
+    },
+    "country": {
+      "title": "Country",
+      "type": "string",
+      "description": "IKEA country code (e.g., 'gb' for United Kingdom, 'us' for United States, 'de' for Germany)",
+      "editor": "textfield",
+      "default": "gb",
+      "prefill": "gb",
+      "enum": ["gb", "us", "de", "fr", "se", "no", "dk", "fi", "nl", "be", "ch", "at", "it", "es", "pt", "pl", "cz", "sk", "hu", "ro", "hr", "si", "ie", "ca", "au", "jp", "kr", "cn", "tw", "hk", "sg", "my", "th", "ae"],
+      "enumTitles": ["United Kingdom", "United States", "Germany", "France", "Sweden", "Norway", "Denmark", "Finland", "Netherlands", "Belgium", "Switzerland", "Austria", "Italy", "Spain", "Portugal", "Poland", "Czech Republic", "Slovakia", "Hungary", "Romania", "Croatia", "Slovenia", "Ireland", "Canada", "Australia", "Japan", "South Korea", "China", "Taiwan", "Hong Kong", "Singapore", "Malaysia", "Thailand", "United Arab Emirates"]
+    },
+    "language": {
+      "title": "Language",
+      "type": "string",
+      "description": "Language code for the website (e.g., 'en' for English, 'de' for German)",
+      "editor": "textfield",
+      "default": "en",
+      "prefill": "en"
+    },
+    "category": {
+      "title": "Category",
+      "type": "string",
+      "description": "Product category to scrape. Use 'new-products' for latest items, or specify other categories like 'furniture', 'storage', 'kitchens', etc.",
+      "editor": "textfield",
+      "default": "new-products",
+      "prefill": "new-products"
+    },
+    "maxProducts": {
+      "title": "Maximum Products",
+      "type": "integer",
+      "description": "Maximum number of products to scrape. Set to 0 for unlimited.",
+      "editor": "number",
+      "default": 100,
+      "prefill": 100,
+      "minimum": 0
+    },
+    "maxPages": {
+      "title": "Maximum Pages",
+      "type": "integer",
+      "description": "Maximum number of listing pages to process (safety limit).",
+      "editor": "number",
+      "default": 10,
+      "prefill": 10,
+      "minimum": 1
+    },
+    "collectDetails": {
+      "title": "Collect Product Details",
+      "type": "boolean",
+      "description": "If enabled, visits each product page to extract full details (description, features, measurements, all images). Disable for faster scraping with basic info only.",
+      "editor": "checkbox",
+      "default": true,
+      "prefill": true
+    },
+    "proxyConfiguration": {
+      "title": "Proxy Configuration",
+      "type": "object",
+      "description": "Proxy settings to avoid rate limiting and blocking. Residential proxies recommended for best results.",
+      "editor": "proxy",
+      "default": {
+        "useApifyProxy": true,
+        "apifyProxyGroups": ["RESIDENTIAL"]
+      },
+      "prefill": {
+        "useApifyProxy": true,
+        "apifyProxyGroups": ["RESIDENTIAL"]
+      }
+    }
+  },
+  "required": [],
+  "additionalProperties": false
+}

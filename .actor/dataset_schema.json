@@ -1,0 +1,142 @@
+{
+  "actorSpecification": 1,
+  "fields": {},
+  "views": {
+    "overview": {
+      "title": "Overview",
+      "description": "All products with key information",
+      "transformation": {
+        "fields": [
+          "image",
+          "name",
+          "productId",
+          "price",
+          "currency",
+          "rating",
+          "reviewCount",
+          "availability",
+          "url"
+        ]
+      },
+      "display": {
+        "component": "table",
+        "properties": {
+          "image": {
+            "label": "Image",
+            "format": "image"
+          },
+          "name": {
+            "label": "Product Name",
+            "format": "text"
+          },
+          "productId": {
+            "label": "Product ID",
+            "format": "text"
+          },
+          "price": {
+            "label": "Price",
+            "format": "number"
+          },
+          "currency": {
+            "label": "Currency",
+            "format": "text"
+          },
+          "rating": {
+            "label": "Rating",
+            "format": "number"
+          },
+          "reviewCount": {
+            "label": "Reviews",
+            "format": "number"
+          },
+          "availability": {
+            "label": "Availability",
+            "format": "text"
+          },
+          "url": {
+            "label": "URL",
+            "format": "link"
+          }
+        }
+      }
+    },
+    "detailed": {
+      "title": "Detailed View",
+      "description": "Products with full details including descriptions and features",
+      "transformation": {
+        "fields": [
+          "name",
+          "productId",
+          "price",
+          "currency",
+          "description",
+          "measurements",
+          "type",
+          "category",
+          "rating",
+          "reviewCount",
+          "availability",
+          "url",
+          "scrapedAt"
+        ]
+      },
+      "display": {
+        "component": "table",
+        "properties": {
+          "name": {
+            "label": "Product Name",
+            "format": "text"
+          },
+          "productId": {
+            "label": "Product ID",
+            "format": "text"
+          },
+          "price": {
+            "label": "Price",
+            "format": "number"
+          },
+          "currency": {
+            "label": "Currency",
+            "format": "text"
+          },
+          "description": {
+            "label": "Description",
+            "format": "text"
+          },
+          "measurements": {
+            "label": "Measurements",
+            "format": "text"
+          },
+          "type": {
+            "label": "Type",
+            "format": "text"
+          },
+          "category": {
+            "label": "Category",
+            "format": "text"
+          },
+          "rating": {
+            "label": "Rating",
+            "format": "number"
+          },
+          "reviewCount": {
+            "label": "Reviews",
+            "format": "number"
+          },
+          "availability": {
+            "label": "Availability",
+            "format": "text"
+          },
+          "url": {
+            "label": "URL",
+            "format": "link"
+          },
+          "scrapedAt": {
+            "label": "Scraped At",
+            "format": "date"
+          }
+        }
+      }
+    }
+  }
+}

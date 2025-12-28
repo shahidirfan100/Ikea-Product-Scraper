@@ -1,0 +1,13 @@
+{
+  "startUrls": [],
+  "country": "gb",
+  "language": "en",
+  "category": "new-products",
+  "maxProducts": 50,
+  "maxPages": 5,
+  "collectDetails": true,
+  "proxyConfiguration": {
+    "useApifyProxy": true,
+    "apifyProxyGroups": ["RESIDENTIAL"]
+  }
+}

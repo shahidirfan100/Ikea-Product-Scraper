@@ -1,0 +1,24 @@
+{
+    "actorOutputSchemaVersion": 1,
+    "title": "IKEA Product Scraper Output",
+    "properties": {
+        "overview": {
+            "type": "string",
+            "title": "Product Overview",
+            "description": "View all scraped products with images, prices, and ratings",
+            "template": "{{links.apiDefaultDatasetUrl}}/items?view=overview"
+        },
+        "detailed": {
+            "type": "string",
+            "title": "Detailed Product Information",
+            "description": "View products with full descriptions, features, and specifications",
+            "template": "{{links.apiDefaultDatasetUrl}}/items?view=detailed"
+        },
+        "allProducts": {
+            "type": "string",
+            "title": "All Products (JSON)",
+            "description": "Download all product data in JSON format",
+            "template": "{{links.apiDefaultDatasetUrl}}/items"
+        }
+    }
+}
