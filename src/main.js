@@ -34,6 +34,27 @@ const buildAcceptLanguage = (language, country) => {
     return `${normalizedLang}-${countryCode},${normalizedLang};q=0.9,en;q=0.8`;
 };
 
+const fetchWithRetry = async (options, { attempts = 3, label = 'request', proxyConf } = {}) => {
+    let lastErr;
+    for (let i = 1; i <= attempts; i++) {
+        try {
+            const proxiedOptions = { ...options };
+            if (proxyConf) {
+                proxiedOptions.proxyUrl = await proxyConf.newUrl();
+            }
+            return await gotScraping(proxiedOptions);
+        } catch (err) {
+            lastErr = err;
+            const status = err.response?.statusCode;
+            const retriable = status === 590 || status === 502 || status === 504 || status === 429;
+            log.warning(`Attempt ${i}/${attempts} failed for ${label}: ${status || err.code || err.message}`);
+            if (i === attempts || !retriable) break;
+            await sleep(500 * i + Math.random() * 500);
+        }
+    }
+    throw lastErr;
+};
+
 await Actor.init();
 
 async function main() {
@@ -505,15 +526,14 @@ async function main() {
                 url.searchParams.set('c', SIK_CLIENT_ID);
                 url.searchParams.set('v', SIK_VERSION);
 
-                const response = await gotScraping({
+                const response = await fetchWithRetry({
                     url: url.toString(),
                     method: 'POST',
-                    proxyUrl: proxyConf ? await proxyConf.newUrl() : undefined,
                     headers: defaultHeaders,
                     responseType: 'json',
                     json: body,
                     timeout: { request: 30000 },
-                });
+                }, { attempts: 3, label: 'SIK API', proxyConf });
 
                 const primary = response.body?.results?.find((res) => res.component === 'PRIMARY_AREA');
                 if (!primary) {
