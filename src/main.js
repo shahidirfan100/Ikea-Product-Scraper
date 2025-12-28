@@ -54,69 +54,10 @@ async function main() {
             'Cache-Control': 'max-age=0',
         };
 
-        // PRIORITY 1: Try IKEA's internal GraphQL/REST API
-        async function tryInternalApi(url, page = 1) {
-            try {
-                log.info(`Attempting IKEA internal API extraction for page ${page}...`);
-                
-                // IKEA uses a pip-product-list API endpoint
-                // Extract the category/type from URL to build API request
-                const urlMatch = url.match(/\/new\/([^/]+)\/?$/);
-                const categorySlug = urlMatch ? urlMatch[1] : 'new-products';
-                
-                // Try different API endpoints that IKEA might use
-                const apiEndpoints = [
-                    // Modern PIP (Product Information Page) API
-                    `https://www.ikea.com/${country}/${language}/iows/pub/new/${categorySlug}`,
-                    // Alternative search/listing API
-                    `https://sik.search.blue.cdtapps.com/${country}/${language}/search-result-page?category=${categorySlug}&size=24&page=${page}`,
-                    // Product listing API
-                    `https://www.ikea.com/${country}/${language}/iows/catalog/availabilities/new/${categorySlug}`,
-                ];
-
-                for (const apiUrl of apiEndpoints) {
-                    try {
-                        log.debug(`Trying API endpoint: ${apiUrl}`);
-                        const response = await gotScraping({
-                            url: apiUrl,
-                            proxyUrl: proxyConf ? await proxyConf.newUrl() : undefined,
-                            responseType: 'json',
-                            headers: {
-                                ...defaultHeaders,
-                                'Accept': 'application/json',
-                                'X-Requested-With': 'XMLHttpRequest',
-                            },
-                            timeout: { request: 30000 },
-                        });
-
-                        const data = response.body;
-                        
-                        // Try to find products in various JSON structures
-                        const products = data?.productWindow?.products 
-                            || data?.products 
-                            || data?.searchResultPage?.products
-                            || data?.productList
-                            || data?.data?.products
-                            || data?.results;
-
-                        if (products && Array.isArray(products) && products.length > 0) {
-                            log.info(`✓ Successfully fetched ${products.length} products from internal API`);
-                            return products;
-                        }
-                    } catch (err) {
-                        log.debug(`API endpoint failed: ${apiUrl} - ${err.message}`);
-                    }
-                }
-            } catch (err) {
-                log.debug(`Internal API extraction failed: ${err.message}`);
-            }
-            return null;
-        }
-
-        // PRIORITY 2: Extract from embedded JSON in HTML
+        // PRIORITY 1: Try Embedded JSON from HTML (most reliable on IKEA)
         async function tryEmbeddedJson(url) {
             try {
-                log.info('Attempting embedded JSON extraction from HTML...');
+                log.info('Attempting embedded JSON-LD extraction from HTML...');
                 const response = await gotScraping({
                     url,
                     proxyUrl: proxyConf ? await proxyConf.newUrl() : undefined,
@@ -127,37 +68,7 @@ async function main() {
 
                 const html = response.body;
                 
-                // Method 1: Look for __PRELOADED_STATE__ or similar
-                const patterns = [
-                    /window\.__PRELOADED_STATE__\s*=\s*({[\s\S]*?});/,
-                    /window\.__INITIAL_STATE__\s*=\s*({[\s\S]*?});/,
-                    /__NEXT_DATA__\s*=\s*({[\s\S]*?});/,
-                    /INITIAL_DATA\s*=\s*({[\s\S]*?});/,
-                ];
-
-                for (const pattern of patterns) {
-                    const match = html.match(pattern);
-                    if (match) {
-                        try {
-                            const jsonData = JSON.parse(match[1]);
-                            
-                            // Navigate through possible JSON structures
-                            const products = jsonData?.productListing?.products 
-                                || jsonData?.products
-                                || jsonData?.props?.pageProps?.productList?.products
-                                || jsonData?.props?.pageProps?.products;
-
-                            if (products && Array.isArray(products) && products.length > 0) {
-                                log.info(`✓ Found ${products.length} products in embedded JSON`);
-                                return { products, html };
-                            }
-                        } catch (e) {
-                            log.debug(`Failed to parse JSON pattern: ${e.message}`);
-                        }
-                    }
-                }
-
-                // Method 2: Look for JSON-LD product markup
+                // Look for JSON-LD product markup (IKEA uses this extensively)
                 const jsonLdMatches = html.match(/<script[^>]*type="application\/ld\+json"[^>]*>([\s\S]*?)<\/script>/gi);
                 if (jsonLdMatches) {
                     for (const match of jsonLdMatches) {
@@ -169,6 +80,12 @@ async function main() {
                             if (data['@type'] === 'ItemList' && data.itemListElement) {
                                 log.info(`✓ Found ${data.itemListElement.length} products in JSON-LD`);
                                 return { products: data.itemListElement, html };
+                            }
+                            
+                            // Check if it's a single product
+                            if (data['@type'] === 'Product' || (Array.isArray(data['@type']) && data['@type'].includes('Product'))) {
+                                log.debug('Found single product JSON-LD');
+                                return { products: [data], html, isSingleProduct: true };
                             }
                         } catch (e) {
                             log.debug(`Failed to parse JSON-LD: ${e.message}`);
@@ -270,12 +187,14 @@ async function main() {
                         name = $link.attr('aria-label')?.replace(/^New\s+/i, '').trim();
                     }
 
-                    // Extract price
+                    // Extract price - IKEA shows it clearly on listing pages
                     const priceSelectors = [
                         '[data-testid*="price"]',
-                        '[class*="price"]',
-                        '.pip-temp-price__integer',
-                        '.product-compact__price',
+                        '.pip-temp-price',
+                        '[class*="price-integer"]',
+                        '[class*="pip-price"]',
+                        '[class*="product-price"]',
+                        'span:contains("£")',
                     ];
                     
                     let price = null;
@@ -283,7 +202,12 @@ async function main() {
                     
                     for (const priceSel of priceSelectors) {
                         priceText = $elem.find(priceSel).first().text().trim();
-                        if (priceText) break;
+                        if (priceText.includes('£')) break;
+                    }
+                    
+                    // If not found, try getting all text and look for price pattern
+                    if (!priceText.includes('£')) {
+                        priceText = $elem.text();
                     }
                     
                     const priceMatch = priceText.match(/£\s*([\d,]+(?:\.\d{2})?)/);
@@ -307,13 +231,13 @@ async function main() {
                         }
                     }
 
-                    // Extract rating
-                    const ratingText = $elem.find('[class*="rating"]').text();
-                    const ratingMatch = ratingText.match(/([\d.]+)\s*out\s*of\s*5/i);
+                    // Extract rating and review count from visible text
+                    const ratingText = $elem.text();
+                    const ratingMatch = ratingText.match(/([\d.]+)\s*(?:out of 5|\/\s*5)/i);
                     const rating = ratingMatch ? parseFloat(ratingMatch[1]) : null;
 
                     // Extract review count
-                    const reviewMatch = $elem.text().match(/\((\d+)\)/);
+                    const reviewMatch = ratingText.match(/(\d+)\s*(?:reviews?|review)/i);
                     const reviewCount = reviewMatch ? parseInt(reviewMatch[1], 10) : null;
 
                     const product = {
@@ -328,8 +252,8 @@ async function main() {
                         availability: 'Available',
                     };
 
-                    // Only add products with at least a name
-                    if (product.name) {
+                    // Only add products with at least a name and price
+                    if (product.name && product.price) {
                         products.push(product);
                     }
                 } catch (err) {
@@ -356,7 +280,7 @@ async function main() {
                 
                 for (const sel of nameSelectors) {
                     const text = $(sel).first().text().trim();
-                    if (text) {
+                    if (text && text.length > 3) {
                         data.name = text;
                         break;
                     }
@@ -365,21 +289,9 @@ async function main() {
                 // Product ID
                 data.productId = url.match(/\/p\/[^/]+-(\d+)\/?/)?.[1] || null;
                 
-                // Price
-                const priceSelectors = [
-                    '[class*="pip-price__integer"]',
-                    '.pip-temp-price__integer',
-                    '[class*="product-price"]',
-                    '[data-testid*="price"]',
-                ];
-                
-                let priceText = '';
-                for (const sel of priceSelectors) {
-                    priceText = $(sel).first().text().trim();
-                    if (priceText) break;
-                }
-                
-                const priceMatch = priceText.match(/([\d,]+(?:\.\d{2})?)/);
+                // Price - Look for "Price £ 60" pattern
+                let priceText = $('body').text();
+                const priceMatch = priceText.match(/Price\s*£\s*([\d,]+(?:\.\d{2})?)/);
                 data.price = priceMatch ? parseFloat(priceMatch[1].replace(/,/g, '')) : null;
                 data.currency = data.price ? 'GBP' : null;
 
@@ -398,19 +310,11 @@ async function main() {
                     }
                 }
                 
-                // Measurements
-                const measureSelectors = [
-                    '[class*="pip-product-summary__measurement"]',
-                    '[class*="measurement"]',
-                    '[class*="dimensions"]',
-                ];
-                
-                for (const sel of measureSelectors) {
-                    const text = $(sel).first().text().trim();
-                    if (text) {
-                        data.measurements = text;
-                        break;
-                    }
+                // Measurements - Look for dimensions
+                const pageText = $('body').text();
+                const measureMatch = pageText.match(/(?:W|Width|H|Height|D|Depth).*?(?:cm|mm|in)/i);
+                if (measureMatch) {
+                    data.measurements = measureMatch[0].trim();
                 }
 
                 // Images
@@ -420,102 +324,62 @@ async function main() {
                     '[class*="product-image"] img',
                     '.pip-aspect-ratio-image__image',
                     'img[src*="product"]',
+                    'img[src*="images"]',
                 ];
                 
                 for (const sel of imageSelectors) {
                     $(sel).each((_, img) => {
                         const src = $(img).attr('src') || $(img).attr('data-src');
-                        if (src && !src.includes('spacer') && !src.includes('placeholder') && !images.includes(src)) {
-                            images.push(src);
+                        if (src && !src.includes('spacer') && !src.includes('placeholder') && !src.includes('favicon') && !images.includes(src)) {
+                            // Extract main image path
+                            if (src.includes('products')) {
+                                images.push(src);
+                            }
                         }
                     });
                     if (images.length > 0) break;
                 }
                 data.images = images.length ? images : null;
 
-                // Rating
-                const ratingSelectors = [
-                    '[class*="pip-rating__value"]',
-                    '[class*="rating-value"]',
-                    '[data-testid*="rating"]',
-                ];
+                // Rating - Look for "3.3 out of 5"
+                const ratingMatch = pageText.match(/([\d.]+)\s*out of 5/i);
+                data.rating = ratingMatch ? parseFloat(ratingMatch[1]) : null;
                 
-                for (const sel of ratingSelectors) {
-                    const text = $(sel).first().text().trim();
-                    const match = text.match(/([\d.]+)/);
-                    if (match) {
-                        data.rating = parseFloat(match[1]);
-                        break;
-                    }
-                }
-                
-                // Review count
-                const reviewSelectors = [
-                    '[class*="pip-rating__count"]',
-                    '[class*="review-count"]',
-                ];
-                
-                for (const sel of reviewSelectors) {
-                    const text = $(sel).first().text().trim();
-                    const match = text.match(/\((\d+)\)/);
-                    if (match) {
-                        data.reviewCount = parseInt(match[1], 10);
-                        break;
-                    }
-                }
+                // Review count - Look for "3 Reviews"
+                const reviewMatch = pageText.match(/(\d+)\s*(?:review|reviews)/i);
+                data.reviewCount = reviewMatch ? parseInt(reviewMatch[1], 10) : null;
 
-                // Features
+                // Features - Extract from "Product features" section
                 const features = [];
-                const featureSelectors = [
-                    '.pip-product-summary__features li',
-                    '[class*="feature"] li',
-                    '.product-features li',
-                ];
+                const $body = $('body');
                 
-                for (const sel of featureSelectors) {
-                    $(sel).each((_, li) => {
-                        const text = $(li).text().trim();
-                        if (text && !features.includes(text)) {
+                // Look for feature text blocks
+                $body.find('li, span, p').each((_, el) => {
+                    const text = $(el).text().trim();
+                    if (text && text.length > 10 && text.length < 200 && !text.match(/^\d+|^£|^Add|^Select/i)) {
+                        // Check if it looks like a feature (not too long, not a number/price)
+                        if (!features.includes(text) && features.length < 10) {
                             features.push(text);
                         }
-                    });
-                    if (features.length > 0) break;
-                }
-                data.features = features.length ? features : null;
-
-                // Type/category
-                const typeSelectors = [
-                    '[class*="pip-product-summary__type"]',
-                    '[class*="product-type"]',
-                    '.breadcrumb li:last-child',
-                ];
-                
-                for (const sel of typeSelectors) {
-                    const text = $(sel).first().text().trim();
-                    if (text) {
-                        data.type = text;
-                        break;
                     }
+                });
+                
+                // Clean up features - remove duplicates and filter
+                const cleanedFeatures = features
+                    .filter(f => f.length > 10 && !f.includes('Add to') && !f.includes('Select') && !f.includes('Choose'))
+                    .slice(0, 5);
+                
+                data.features = cleanedFeatures.length ? cleanedFeatures : null;
+
+                // Type/category - Get from breadcrumb or header
+                const typeMatch = pageText.match(/(?:Category|Type):\s*([^\n]+)/i);
+                if (typeMatch) {
+                    data.type = typeMatch[1].trim();
                 }
 
-                // Availability
-                const availSelectors = [
-                    '[class*="pip-stock-status"]',
-                    '[class*="stock"]',
-                    '[class*="availability"]',
-                ];
-                
-                for (const sel of availSelectors) {
-                    const text = $(sel).first().text().trim();
-                    if (text) {
-                        data.availability = text;
-                        break;
-                    }
-                }
-                
-                if (!data.availability) {
-                    data.availability = 'Check availability';
-                }
+                // Availability - Look for stock status
+                const availMatch = pageText.match(/(?:Stock|Available|Availability):\s*([^\n]+)/i);
+                data.availability = availMatch ? availMatch[1].trim() : 'Check availability';
 
                 return data;
             } catch (err) {
@@ -603,43 +467,23 @@ async function main() {
                 if (label === 'LIST') {
                     let productsFound = [];
 
-                    // PRIORITY 1: Try internal API
-                    const apiProducts = await tryInternalApi(request.url, pageNo);
-                    if (apiProducts && apiProducts.length > 0) {
-                        crawlerLog.info(`✓ Using internal API data (${apiProducts.length} products)`);
-                        for (const apiProduct of apiProducts) {
+                    // PRIORITY 1: Try embedded JSON-LD (most reliable for IKEA)
+                    const { products: jsonProducts, html } = await tryEmbeddedJson(request.url);
+                    
+                    if (jsonProducts && jsonProducts.length > 0) {
+                        crawlerLog.info(`✓ Using JSON-LD data (${jsonProducts.length} products)`);
+                        for (const jsonProduct of jsonProducts) {
                             if (saved >= MAX_PRODUCTS) break;
-                            const product = processApiProduct(apiProduct);
+                            const product = processApiProduct(jsonProduct);
                             if (product) productsFound.push(product);
                         }
                     }
 
-                    // PRIORITY 2: Try embedded JSON if API failed
-                    if (productsFound.length === 0) {
-                        const { products: jsonProducts, html } = await tryEmbeddedJson(request.url);
-                        
-                        if (jsonProducts && jsonProducts.length > 0) {
-                            crawlerLog.info(`✓ Using embedded JSON data (${jsonProducts.length} products)`);
-                            for (const jsonProduct of jsonProducts) {
-                                if (saved >= MAX_PRODUCTS) break;
-                                const product = processApiProduct(jsonProduct);
-                                if (product) productsFound.push(product);
-                            }
-                        } else if (html) {
-                            // PRIORITY 3: Parse HTML as final fallback
-                            crawlerLog.info('Falling back to HTML parsing...');
-                            // Load HTML into cheerio if we have it
-                            const cheerio = await import('cheerio');
-                            const $html = cheerio.load(html);
-                            productsFound = extractProductsFromHtml($html);
-                            crawlerLog.info(`✓ Extracted ${productsFound.length} products from HTML`);
-                        }
-                    }
-
-                    // If still no products, try HTML from current $
+                    // PRIORITY 2: Parse HTML if JSON-LD failed
                     if (productsFound.length === 0 && $) {
-                        crawlerLog.info('Attempting HTML extraction from current page...');
+                        crawlerLog.info('Falling back to HTML parsing...');
                         productsFound = extractProductsFromHtml($);
+                        crawlerLog.info(`✓ Extracted ${productsFound.length} products from HTML`);
                     }
 
                     if (productsFound.length === 0) {
