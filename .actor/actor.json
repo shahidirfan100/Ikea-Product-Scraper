@@ -13,6 +13,6 @@
     "dataset": "./dataset_schema.json"
   },
   "meta": {
-    "generatedBy": "Claude Sonnet 4.5"
+    "generatedBy": "gpt-5-codex"
   }
 }
