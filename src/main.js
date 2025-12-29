@@ -558,6 +558,8 @@ async function main() {
 
                     for (const item of items) {
                         if (saved >= MAX_PRODUCTS) break;
+                        // OPTIMIZATION: Only enqueue exactly maxProducts detail requests
+                        if (collectDetails && detailRequests.length >= MAX_PRODUCTS) break;
                         const mapped = mapSikProduct(item.product);
                         if (!mapped) continue;
 
@@ -590,14 +592,20 @@ async function main() {
                 maxRequestRetries: 2,
                 useSessionPool: true,
                 persistCookiesPerSession: true,
-                maxConcurrency: 3,
-                maxRequestsPerMinute: 60,
-                requestHandlerTimeoutSecs: 90,
+                maxConcurrency: 8, // OPTIMIZATION: Increased from 3 for faster processing
+                maxRequestsPerMinute: 90, // OPTIMIZATION: Increased throughput
+                requestHandlerTimeoutSecs: 60, // OPTIMIZATION: Faster timeout
+                // OPTIMIZATION: Early termination when limit reached
+                autoscaledPoolOptions: {
+                    isFinishedFunction: async () => saved >= MAX_PRODUCTS,
+                },
                 preNavigationHooks: [
                     async (_, goToOptions) => {
-                        await sleep(500 + Math.random() * 700);
+                        // OPTIMIZATION: Faster delays 200-500ms (was 500-1200ms)
+                        await sleep(200 + Math.random() * 300);
                         goToOptions.headers = {
                             ...defaultHeaders,
+                            'User-Agent': pickUserAgent(), // OPTIMIZATION: Rotate per request
                             'sec-ch-ua': '"Google Chrome";v="131", "Chromium";v="131", "Not_A Brand";v="24"',
                             'sec-ch-ua-mobile': '?0',
                             'sec-ch-ua-platform': '"Windows"',
@@ -605,7 +613,10 @@ async function main() {
                     },
                 ],
                 async requestHandler({ request, $, log: crawlerLog }) {
-                    if (saved >= MAX_PRODUCTS) return;
+                    if (saved >= MAX_PRODUCTS) {
+                        crawlerLog.debug(`Skipping - limit reached: ${saved}/${MAX_PRODUCTS}`);
+                        return;
+                    }
                     try {
                         const baseData = request.userData?.baseData || {};
                         const details = await extractProductDetails(request.url, $);
@@ -620,13 +631,22 @@ async function main() {
                         await Dataset.pushData(finalProduct);
                         saved++;
                         crawlerLog.info(`Saved detailed product ${saved}/${MAX_PRODUCTS}: ${finalProduct.name}`);
+
+                        // OPTIMIZATION: Log when limit reached
+                        if (saved >= MAX_PRODUCTS) {
+                            crawlerLog.info(`✓ Reached ${MAX_PRODUCTS} products limit - crawler will stop`);
+                        }
                     } catch (err) {
                         crawlerLog.error(`Detail request failed for ${request.url}: ${err.message}`);
                     }
                 },
                 failedRequestHandler({ request, session }, error) {
-                    log.error(`Detail request ${request.url} failed: ${error.message}`);
-                    if (session) session.retire();
+                    const msg = error.message || '';
+                    log.warning(`Detail request ${request.url} failed: ${msg.substring(0, 100)}`);
+                    // OPTIMIZATION: Only retire session on actual blocks, not transient proxy errors
+                    if (session && (msg.includes('403') || msg.includes('captcha'))) {
+                        session.retire();
+                    }
                 },
             });
 
@@ -638,28 +658,32 @@ async function main() {
 
             const crawler = new CheerioCrawler({
                 proxyConfiguration: proxyConf,
-                maxRequestRetries: 2, // Fast failures
+                maxRequestRetries: 2,
                 useSessionPool: true,
                 persistCookiesPerSession: true,
-                maxConcurrency: 6, // Balanced: 2x faster than 2
-                minConcurrency: 4, // Start with 4 parallel
-                maxRequestsPerMinute: 60, // 2x faster throughput
-                requestHandlerTimeoutSecs: 90, // Faster timeouts
+                maxConcurrency: 8, // OPTIMIZATION: Increased for faster processing
+                minConcurrency: 4,
+                maxRequestsPerMinute: 90, // OPTIMIZATION: Increased throughput
+                requestHandlerTimeoutSecs: 60, // OPTIMIZATION: Faster timeout
+                // OPTIMIZATION: Early termination when limit reached
+                autoscaledPoolOptions: {
+                    isFinishedFunction: async () => saved >= MAX_PRODUCTS,
+                },
                 sessionPoolOptions: {
                     maxPoolSize: 15,
                     sessionOptions: {
-                        maxUsageCount: 8, // More efficient per session
-                        maxErrorScore: 2, // Moderate tolerance
+                        maxUsageCount: 10, // OPTIMIZATION: More efficient per session
+                        maxErrorScore: 3, // OPTIMIZATION: Better tolerance
                     },
-                    persistStateKeyValueStoreId: 'ikea-sessions',
                 },
                 preNavigationHooks: [
                     async (_, goToOptions) => {
-                        // Faster but still natural delays: 500-1000ms
-                        const delay = 500 + Math.random() * 500;
+                        // OPTIMIZATION: Faster delays 200-500ms (was 500-1000ms)
+                        const delay = 200 + Math.random() * 300;
                         await sleep(delay);
                         goToOptions.headers = {
                             ...defaultHeaders,
+                            'User-Agent': pickUserAgent(), // OPTIMIZATION: Rotate per request
                             'sec-ch-ua': '"Google Chrome";v="131", "Chromium";v="131", "Not_A Brand";v="24"',
                             'sec-ch-ua-mobile': '?0',
                             'sec-ch-ua-platform': '"Windows"',
@@ -750,13 +774,13 @@ async function main() {
                 async failedRequestHandler({ request, session }, error) {
                     const errorMsg = error.message || '';
                     log.error(`Request ${request.url} failed: ${errorMsg.substring(0, 100)}`);
-                    
+
                     // Retire session on specific errors
                     if (session && (errorMsg.includes('403') || errorMsg.includes('590') || errorMsg.includes('UPSTREAM'))) {
                         session.retire();
                         log.warning('Session retired - will retry with new session');
                     }
-                    
+
                     // Don't crash on proxy errors
                     if (errorMsg.includes('590') || errorMsg.includes('UPSTREAM502')) {
                         log.warning('Proxy error - continuing with remaining requests');
