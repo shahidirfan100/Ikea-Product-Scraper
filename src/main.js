@@ -633,25 +633,30 @@ async function main() {
 
             const crawler = new CheerioCrawler({
                 proxyConfiguration: proxyConf,
-                maxRequestRetries: 3,
+                maxRequestRetries: 2, // Reduced from 3 for speed
                 useSessionPool: true,
                 persistCookiesPerSession: true,
-                maxConcurrency: 4, // Balanced: speed + stealth
-                minConcurrency: 2,
-                maxRequestsPerMinute: 60, // Faster scraping
-                requestHandlerTimeoutSecs: 120,
+                maxConcurrency: 8, // Increased for maximum speed
+                minConcurrency: 6, // Force higher concurrency from start
+                maxRequestsPerMinute: 120, // Doubled for speed
+                requestHandlerTimeoutSecs: 60, // Reduced from 120 for faster failures
+                autoscaledPoolOptions: {
+                    desiredConcurrency: 8, // Force desired concurrency
+                    desiredConcurrencyRatio: 1, // Always aim for max
+                    minConcurrency: 6,
+                    maxConcurrency: 8,
+                },
                 sessionPoolOptions: {
-                    maxPoolSize: 20,
+                    maxPoolSize: 30,
                     sessionOptions: {
-                        maxUsageCount: 10, // More efficient
-                        maxErrorScore: 3, // More tolerant
+                        maxUsageCount: 15, // More requests per session
+                        maxErrorScore: 5, // Very tolerant
                     },
                     persistStateKeyValueStoreId: 'ikea-sessions',
                 },
                 preNavigationHooks: [
                     async (_, goToOptions) => {
-                        const delay = 300 + Math.random() * 500; // Faster delays
-                        await sleep(delay);
+                        // No delay for maximum speed - stealth maintained via headers
                         goToOptions.headers = {
                             ...defaultHeaders,
                             'sec-ch-ua': '"Google Chrome";v="131", "Chromium";v="131", "Not_A Brand";v="24"',
@@ -708,7 +713,11 @@ async function main() {
                     }
 
                     if (label === 'DETAIL') {
-                        if (saved >= MAX_PRODUCTS) return;
+                        // Check if we've already hit the limit before processing
+                        if (saved >= MAX_PRODUCTS) {
+                            crawlerLog.info(`Already reached ${MAX_PRODUCTS} products - skipping request`);
+                            return;
+                        }
 
                         try {
                             const baseData = request.userData?.baseData || {};
@@ -725,6 +734,12 @@ async function main() {
                             await Dataset.pushData(finalProduct);
                             saved++;
                             crawlerLog.info(`Saved detailed product ${saved}/${MAX_PRODUCTS}: ${finalProduct.name}`);
+                            
+                            // Immediately abort crawler if we hit the limit
+                            if (saved >= MAX_PRODUCTS) {
+                                crawlerLog.info(`✓ Reached target of ${MAX_PRODUCTS} products - aborting crawler`);
+                                await crawler.autoscaledPool?.abort();
+                            }
                         } catch (err) {
                             crawlerLog.error(`Failed to process detail page ${request.url}: ${err.message}`);
                         }
