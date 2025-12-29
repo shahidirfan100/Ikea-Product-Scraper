@@ -514,64 +514,69 @@ async function main() {
             let total = Infinity;
             let count = 0;
 
-            while (saved < MAX_PRODUCTS && offset < total && page <= MAX_PAGES) {
-                const windowSize = Math.min(DEFAULT_PAGE_SIZE, MAX_PRODUCTS - saved, MAX_API_WINDOW);
-                const body = {
-                    searchParameters: { input, type },
-                    components: [
-                        {
-                            component: 'PRIMARY_AREA',
-                            types: { main: 'PRODUCT', breakouts: [] },
-                            filterConfig: {},
-                            window: { size: windowSize, offset },
-                            columns: 4,
-                        },
-                    ],
-                };
-                const url = new URL(`${base}/search`);
-                url.searchParams.set('c', SIK_CLIENT_ID);
-                url.searchParams.set('v', SIK_VERSION);
+            try {
+                while (saved < MAX_PRODUCTS && offset < total && page <= MAX_PAGES) {
+                    const windowSize = Math.min(DEFAULT_PAGE_SIZE, MAX_PRODUCTS - saved, MAX_API_WINDOW);
+                    const body = {
+                        searchParameters: { input, type },
+                        components: [
+                            {
+                                component: 'PRIMARY_AREA',
+                                types: { main: 'PRODUCT', breakouts: [] },
+                                filterConfig: {},
+                                window: { size: windowSize, offset },
+                                columns: 4,
+                            },
+                        ],
+                    };
+                    const url = new URL(`${base}/search`);
+                    url.searchParams.set('c', SIK_CLIENT_ID);
+                    url.searchParams.set('v', SIK_VERSION);
 
-                const response = await fetchWithRetry({
-                    url: url.toString(),
-                    method: 'POST',
-                    headers: defaultHeaders,
-                    responseType: 'json',
-                    json: body,
-                    timeout: { request: 30000 },
-                }, { attempts: 3, label: 'SIK API', proxyConf });
+                    const response = await fetchWithRetry({
+                        url: url.toString(),
+                        method: 'POST',
+                        headers: defaultHeaders,
+                        responseType: 'json',
+                        json: body,
+                        timeout: { request: 45000 }, // Increased from 30s
+                    }, { attempts: 2, label: 'SIK API', proxyConf }); // Reduced attempts for speed
 
-                const primary = response.body?.results?.find((res) => res.component === 'PRIMARY_AREA');
-                if (!primary) {
-                    log.warning('SIK API responded without PRIMARY_AREA payload, falling back to HTML.');
-                    break;
-                }
-
-                const items = primary.items?.filter((item) => item.type === 'PRODUCT' && item.product) ?? [];
-                total = primary.metadata?.itemsPerType?.PRODUCT ?? primary.metadata?.max ?? total;
-
-                if (!items.length) {
-                    log.warning(`SIK API returned no products for batch offset ${offset}.`);
-                    break;
-                }
-
-                for (const item of items) {
-                    if (saved >= MAX_PRODUCTS) break;
-                    const mapped = mapSikProduct(item.product);
-                    if (!mapped) continue;
-
-                    if (collectDetails && mapped.url) {
-                        detailRequests.push({ url: mapped.url, userData: { baseData: mapped } });
-                    } else {
-                        await Dataset.pushData(mapped);
-                        saved++;
-                        log.info(`Saved product ${saved}/${MAX_PRODUCTS} from API: ${mapped.name}`);
+                    const primary = response.body?.results?.find((res) => res.component === 'PRIMARY_AREA');
+                    if (!primary) {
+                        log.warning('SIK API responded without PRIMARY_AREA payload, falling back to HTML.');
+                        break;
                     }
-                    count++;
-                }
 
-                offset += windowSize;
-                page++;
+                    const items = primary.items?.filter((item) => item.type === 'PRODUCT' && item.product) ?? [];
+                    total = primary.metadata?.itemsPerType?.PRODUCT ?? primary.metadata?.max ?? total;
+
+                    if (!items.length) {
+                        log.warning(`SIK API returned no products for batch offset ${offset}.`);
+                        break;
+                    }
+
+                    for (const item of items) {
+                        if (saved >= MAX_PRODUCTS) break;
+                        const mapped = mapSikProduct(item.product);
+                        if (!mapped) continue;
+
+                        if (collectDetails && mapped.url) {
+                            detailRequests.push({ url: mapped.url, userData: { baseData: mapped } });
+                        } else {
+                            await Dataset.pushData(mapped);
+                            saved++;
+                            log.info(`Saved product ${saved}/${MAX_PRODUCTS} from API: ${mapped.name}`);
+                        }
+                        count++;
+                    }
+
+                    offset += windowSize;
+                    page++;
+                }
+            } catch (err) {
+                log.warning(`SIK API failed: ${err.message} - will fallback to HTML crawling`);
+                return 0; // Return 0 to trigger HTML fallback
             }
 
             return count;
@@ -766,7 +771,14 @@ async function main() {
         let apiCount = 0;
 
         if (sikSearchConfig) {
-            apiCount = await fetchViaSik(sikSearchConfig);
+            try {
+                log.info('Attempting to fetch products via SIK API...');
+                apiCount = await fetchViaSik(sikSearchConfig);
+                log.info(`SIK API returned ${apiCount} products`);
+            } catch (err) {
+                log.warning(`SIK API completely failed: ${err.message}`);
+                apiCount = 0; // Ensure fallback to HTML
+            }
         }
 
         if (collectDetails && detailRequests.length) {
@@ -775,6 +787,7 @@ async function main() {
 
         const shouldRunHtml = startUrls.length > 0 || !sikSearchConfig || apiCount === 0;
         if (shouldRunHtml && saved < MAX_PRODUCTS) {
+            log.info('Starting HTML crawler as fallback...');
             await runHtmlCrawler(initial);
         }
 
