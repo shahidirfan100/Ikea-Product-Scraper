@@ -172,13 +172,14 @@ async function main() {
 
         const tryEmbeddedJson = async (url) => {
             try {
-                const response = await gotScraping({
+                log.info('Attempting JSON-LD extraction from HTML...');
+                const response = await fetchWithRetry({
                     url,
-                    proxyUrl: proxyConf ? await proxyConf.newUrl() : undefined,
                     responseType: 'text',
                     headers: defaultHeaders,
-                    timeout: { request: 25000 },
-                });
+                    timeout: { request: 30000 },
+                    retry: { limit: 0 },
+                }, { attempts: 3, label: 'JSON-LD fetch', proxyConf });
 
                 const html = response.body;
                 const jsonLdMatches = html.match(/<script[^>]*type="application\/ld\+json"[^>]*>([\s\S]*?)<\/script>/gi);
@@ -188,11 +189,13 @@ async function main() {
                             const jsonStr = match.replace(/<script[^>]*>/, '').replace(/<\/script>/, '');
                             const data = JSON.parse(jsonStr);
                             if (data['@type'] === 'ItemList' && data.itemListElement) {
+                                log.info(`✓ Found ${data.itemListElement.length} products in JSON-LD`);
                                 return { products: data.itemListElement, html };
                             }
 
                             if (data['@type'] === 'Product'
                                 || (Array.isArray(data['@type']) && data['@type'].includes('Product'))) {
+                                log.debug('Found single product JSON-LD');
                                 return { products: [data], html, isSingleProduct: true };
                             }
                         } catch (e) {
@@ -209,6 +212,7 @@ async function main() {
         };
 
         const extractProductsFromHtml = ($) => {
+            log.info('Extracting products from HTML DOM...');
             const products = [];
             const possibleSelectors = [
                 '[data-testid="plp-product-card"]',
@@ -224,6 +228,8 @@ async function main() {
             for (const selector of possibleSelectors) {
                 const elements = $(selector).toArray();
                 if (elements.length > 0) {
+                    log.info(`✓ Found ${elements.length} products using selector: ${selector}`);
+                    log.info(`✓ Found ${elements.length} products using selector: ${selector}`);
                     productElements = elements;
                     break;
                 }
@@ -630,21 +636,21 @@ async function main() {
                 maxRequestRetries: 3,
                 useSessionPool: true,
                 persistCookiesPerSession: true,
-                maxConcurrency: 2,
-                minConcurrency: 1,
-                maxRequestsPerMinute: 30,
+                maxConcurrency: 4, // Balanced: speed + stealth
+                minConcurrency: 2,
+                maxRequestsPerMinute: 60, // Faster scraping
                 requestHandlerTimeoutSecs: 120,
                 sessionPoolOptions: {
-                    maxPoolSize: 10,
+                    maxPoolSize: 20,
                     sessionOptions: {
-                        maxUsageCount: 5,
-                        maxErrorScore: 1,
+                        maxUsageCount: 10, // More efficient
+                        maxErrorScore: 3, // More tolerant
                     },
                     persistStateKeyValueStoreId: 'ikea-sessions',
                 },
                 preNavigationHooks: [
                     async (_, goToOptions) => {
-                        const delay = 800 + Math.random() * 1500;
+                        const delay = 300 + Math.random() * 500; // Faster delays
                         await sleep(delay);
                         goToOptions.headers = {
                             ...defaultHeaders,
@@ -725,10 +731,18 @@ async function main() {
                     }
                 },
                 async failedRequestHandler({ request, session }, error) {
-                    log.error(`Request ${request.url} failed after ${request.retryCount} retries: ${error.message}`);
-                    if (error.message.includes('403') && session) {
+                    const errorMsg = error.message || '';
+                    log.error(`Request ${request.url} failed: ${errorMsg.substring(0, 100)}`);
+                    
+                    // Retire session on specific errors
+                    if (session && (errorMsg.includes('403') || errorMsg.includes('590') || errorMsg.includes('UPSTREAM'))) {
                         session.retire();
-                        log.warning('Session retired due to 403 error.');
+                        log.warning('Session retired - will retry with new session');
+                    }
+                    
+                    // Don't crash on proxy errors
+                    if (errorMsg.includes('590') || errorMsg.includes('UPSTREAM502')) {
+                        log.warning('Proxy error - continuing with remaining requests');
                     }
                 },
             });
