@@ -43,8 +43,8 @@
       "type": "integer",
       "description": "Maximum number of products to scrape. Set to 0 for unlimited.",
       "editor": "number",
-      "default": 100,
-      "prefill": 100,
+      "default": 20,
+      "prefill": 20,
       "minimum": 0
     },
     "maxPages": {
@@ -52,8 +52,8 @@
       "type": "integer",
       "description": "Maximum number of listing pages to process (safety limit).",
       "editor": "number",
-      "default": 10,
-      "prefill": 10,
+      "default": 2,
+      "prefill": 2,
       "minimum": 1
     },
     "collectDetails": {
@@ -61,8 +61,8 @@
       "type": "boolean",
       "description": "If enabled, visits each product page to extract full details (description, features, measurements, all images). Disable for faster scraping with basic info only.",
       "editor": "checkbox",
-      "default": true,
-      "prefill": true
+      "default": false,
+      "prefill": false
     },
     "proxyConfiguration": {
       "title": "Proxy Configuration",

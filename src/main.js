@@ -65,9 +65,9 @@ async function main() {
             country = 'gb',
             language = 'en',
             category = 'new-products',
-            maxProducts = 100,
-            maxPages = 10,
-            collectDetails = true,
+            maxProducts = 20,
+            maxPages = 2,
+            collectDetails = false,
             proxyConfiguration,
         } = input;
 
