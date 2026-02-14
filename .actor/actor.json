@@ -2,7 +2,7 @@
   "actorSpecification": 1,
   "name": "ikea-product-scraper",
   "title": "IKEA Product Scraper",
-  "version": "1.0.0",
+  "version": "1.0",
   "buildTag": "latest",
   "dockerfile": "../Dockerfile",
   "readme": "../README.md",
@@ -13,6 +13,6 @@
     "dataset": "./dataset_schema.json"
   },
   "meta": {
-    "generatedBy": "Claude Sonnet 4.5"
+    "generatedBy": "GPT-5.3-Codex"
   }
 }

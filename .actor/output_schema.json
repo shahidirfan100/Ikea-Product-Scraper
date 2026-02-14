@@ -5,14 +5,8 @@
         "overview": {
             "type": "string",
             "title": "Product Overview",
-            "description": "View all scraped products with images, prices, and ratings",
+            "description": "View API-first listing/search products with key fields",
             "template": "{{links.apiDefaultDatasetUrl}}/items?view=overview"
-        },
-        "detailed": {
-            "type": "string",
-            "title": "Detailed Product Information",
-            "description": "View products with full descriptions, features, and specifications",
-            "template": "{{links.apiDefaultDatasetUrl}}/items?view=detailed"
         },
         "allProducts": {
             "type": "string",

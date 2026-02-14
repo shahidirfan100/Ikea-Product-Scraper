@@ -4,18 +4,30 @@
   "views": {
     "overview": {
       "title": "Overview",
-      "description": "All products with key information",
+      "description": "Products fetched directly from IKEA listing/search API",
       "transformation": {
         "fields": [
           "image",
           "name",
           "productId",
+          "typeName",
           "price",
           "currency",
+          "priceText",
+          "hasDiscount",
           "rating",
           "reviewCount",
+          "onlineSellable",
+          "lastChance",
+          "variantsCount",
           "availability",
-          "url"
+          "categoryPathText",
+          "productAreaName",
+          "productType",
+          "categoryOrQuery",
+          "sourceType",
+          "url",
+          "scrapedAt"
         ]
       },
       "display": {
@@ -33,87 +45,25 @@
             "label": "Product ID",
             "format": "text"
           },
-          "price": {
-            "label": "Price",
-            "format": "number"
-          },
-          "currency": {
-            "label": "Currency",
-            "format": "text"
-          },
-          "rating": {
-            "label": "Rating",
-            "format": "number"
-          },
-          "reviewCount": {
-            "label": "Reviews",
-            "format": "number"
-          },
-          "availability": {
-            "label": "Availability",
-            "format": "text"
-          },
-          "url": {
-            "label": "URL",
-            "format": "link"
-          }
-        }
-      }
-    },
-    "detailed": {
-      "title": "Detailed View",
-      "description": "Products with full details including descriptions and features",
-      "transformation": {
-        "fields": [
-          "name",
-          "productId",
-          "price",
-          "currency",
-          "description",
-          "measurements",
-          "type",
-          "category",
-          "rating",
-          "reviewCount",
-          "availability",
-          "url",
-          "scrapedAt"
-        ]
-      },
-      "display": {
-        "component": "table",
-        "properties": {
-          "name": {
-            "label": "Product Name",
-            "format": "text"
-          },
-          "productId": {
-            "label": "Product ID",
-            "format": "text"
-          },
-          "price": {
-            "label": "Price",
-            "format": "number"
-          },
-          "currency": {
-            "label": "Currency",
-            "format": "text"
-          },
-          "description": {
-            "label": "Description",
-            "format": "text"
-          },
-          "measurements": {
-            "label": "Measurements",
-            "format": "text"
-          },
-          "type": {
+          "typeName": {
             "label": "Type",
             "format": "text"
           },
-          "category": {
-            "label": "Category",
+          "price": {
+            "label": "Price",
+            "format": "number"
+          },
+          "currency": {
+            "label": "Currency",
             "format": "text"
+          },
+          "priceText": {
+            "label": "Price Text",
+            "format": "text"
+          },
+          "hasDiscount": {
+            "label": "Has Discount",
+            "format": "boolean"
           },
           "rating": {
             "label": "Rating",
@@ -123,8 +73,40 @@
             "label": "Reviews",
             "format": "number"
           },
+          "onlineSellable": {
+            "label": "Online Sellable",
+            "format": "boolean"
+          },
+          "lastChance": {
+            "label": "Last Chance",
+            "format": "boolean"
+          },
+          "variantsCount": {
+            "label": "Variants",
+            "format": "number"
+          },
           "availability": {
             "label": "Availability",
+            "format": "text"
+          },
+          "categoryPathText": {
+            "label": "Category Path",
+            "format": "text"
+          },
+          "productAreaName": {
+            "label": "Product Area",
+            "format": "text"
+          },
+          "productType": {
+            "label": "Product Type",
+            "format": "text"
+          },
+          "categoryOrQuery": {
+            "label": "Category / Query",
+            "format": "text"
+          },
+          "sourceType": {
+            "label": "Source Type",
             "format": "text"
           },
           "url": {

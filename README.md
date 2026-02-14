@@ -1,107 +1,116 @@
 # IKEA Product Scraper
 
-Extract comprehensive product information from IKEA's online catalog across multiple countries and categories. This solution efficiently retrieves product details, pricing, images, ratings, specifications, and availability data.
+Extract comprehensive IKEA product data with lightning-fast API-powered collection. Gather product details, pricing, ratings, and availability from IKEA's global catalog at scale. Perfect for retail research, price monitoring, and market intelligence.
 
 ## Features
 
-<ul>
-<li><strong>Multi-Country Support</strong> — Scrape from 30+ IKEA country websites including UK, US, Germany, France, Sweden, and more</li>
-<li><strong>Comprehensive Data Extraction</strong> — Collect product names, IDs, prices, images, descriptions, measurements, ratings, reviews, and availability</li>
-<li><strong>Smart Extraction Methods</strong> — Automatically tries JSON API extraction first for speed, falls back to HTML parsing for reliability</li>
-<li><strong>Flexible Configuration</strong> — Choose between quick overview scraping or detailed product information extraction</li>
-<li><strong>Category Filtering</strong> — Target specific categories like new products, furniture, storage, kitchens, and more</li>
-<li><strong>Built-in Deduplication</strong> — Automatically prevents duplicate products in results</li>
-<li><strong>Pagination Support</strong> — Automatically navigates through multiple pages of product listings</li>
-<li><strong>Rate Limit Protection</strong> — Configurable proxy support to avoid blocking</li>
-</ul>
+- **Complete Product Data** — Extract names, prices, images, ratings, and availability
+- **Multi-Country Support** — Scrape from 30+ IKEA markets worldwide
+- **Fast API Extraction** — Direct access to IKEA's internal search API for maximum speed
+- **Flexible Search Options** — Search by keywords or browse categories and new products
+- **Automatic Pagination** — Collect thousands of products with intelligent page handling
+- **Built-in Deduplication** — Eliminate duplicate products automatically
+- **Proxy Protection** — Residential proxies for reliable, uninterrupted scraping
 
 ## Use Cases
 
-<ul>
-<li><strong>Price Monitoring</strong> — Track product prices across different regions and time periods</li>
-<li><strong>Market Research</strong> — Analyze product catalogs, pricing strategies, and inventory availability</li>
-<li><strong>Competitor Analysis</strong> — Compare product offerings and pricing across markets</li>
-<li><strong>Inventory Management</strong> — Monitor stock availability and product launches</li>
-<li><strong>E-commerce Intelligence</strong> — Build price comparison platforms and shopping assistants</li>
-<li><strong>Data Analysis</strong> — Conduct market trend analysis and consumer behavior studies</li>
-</ul>
+### Product Research
+Analyze IKEA's complete product catalog to identify trending items, pricing patterns, and customer favorites. Perfect for retailers researching competitive products and sourcing opportunities.
 
-## Input Configuration
+### Price Monitoring
+Track IKEA product prices across different countries and time periods. Monitor pricing strategies, seasonal discounts, and market positioning for competitive intelligence.
 
-The scraper accepts the following input parameters:
+### Market Intelligence
+Build comprehensive datasets of IKEA's offerings for market analysis. Understand product categories, availability patterns, and customer rating trends across global markets.
 
-<table>
-<thead>
-<tr>
-<th>Parameter</th>
-<th>Type</th>
-<th>Description</th>
-<th>Default</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>startUrls</code></td>
-<td>Array</td>
-<td>List of IKEA URLs to scrape (category pages, search results, or product pages). Leave empty to use default new products page.</td>
-<td><code>[]</code></td>
-</tr>
-<tr>
-<td><code>country</code></td>
-<td>String</td>
-<td>IKEA country code (e.g., 'gb' for UK, 'us' for USA, 'de' for Germany). Supports 30+ countries.</td>
-<td><code>"gb"</code></td>
-</tr>
-<tr>
-<td><code>language</code></td>
-<td>String</td>
-<td>Language code for the website (e.g., 'en' for English, 'de' for German).</td>
-<td><code>"en"</code></td>
-</tr>
-<tr>
-<td><code>category</code></td>
-<td>String</td>
-<td>Product category to scrape. Use 'new-products' for latest items, or specify categories like 'furniture', 'storage', 'kitchens', etc.</td>
-<td><code>"new-products"</code></td>
-</tr>
-<tr>
-<td><code>maxProducts</code></td>
-<td>Integer</td>
-<td>Maximum number of products to scrape. Set to 0 for unlimited.</td>
-<td><code>100</code></td>
-</tr>
-<tr>
-<td><code>maxPages</code></td>
-<td>Integer</td>
-<td>Maximum number of listing pages to process (safety limit).</td>
-<td><code>10</code></td>
-</tr>
-<tr>
-<td><code>collectDetails</code></td>
-<td>Boolean</td>
-<td>If enabled, visits each product page to extract full details (description, features, measurements, all images). Disable for faster scraping with basic info only.</td>
-<td><code>true</code></td>
-</tr>
-<tr>
-<td><code>proxyConfiguration</code></td>
-<td>Object</td>
-<td>Proxy settings to avoid rate limiting. Residential proxies recommended for best results.</td>
-<td>Apify Proxy (Residential)</td>
-</tr>
-</tbody>
-</table>
+### Inventory Analysis
+Monitor product availability and stock levels across IKEA's worldwide network. Identify popular items, out-of-stock patterns, and regional inventory differences.
 
-### Input Example
+### Competitive Analysis
+Compare IKEA's product offerings, pricing, and customer feedback against competitors. Gain insights into market positioning and product strategy.
+
+---
+
+## Input Parameters
+
+| Parameter | Type | Required | Default | Description |
+|-----------|------|----------|---------|-------------|
+| `startUrls` | Array | No | `[]` | IKEA listing or search URLs to scrape |
+| `country` | String | No | `"gb"` | IKEA country code (gb, us, de, fr, etc.) |
+| `language` | String | No | `"en"` | Website language code |
+| `category` | String | No | `"new-products"` | Category or search term |
+| `maxProducts` | Integer | No | `20` | Maximum products to collect |
+| `maxPages` | Integer | No | `2` | Maximum API pages to process |
+| `proxyConfiguration` | Object | No | Residential proxy | Proxy settings for reliability |
+
+---
+
+## Output Data
+
+Each item in the dataset contains:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `productId` | String | Unique IKEA product identifier |
+| `name` | String | Product name and variant details |
+| `price` | Number | Current product price |
+| `currency` | String | Currency code (GBP, USD, EUR, etc.) |
+| `image` | String | Main product image URL |
+| `url` | String | Direct link to product page |
+| `rating` | Number | Average customer rating (0-5) |
+| `reviewCount` | Number | Total number of customer reviews |
+| `availability` | String | Stock availability status |
+| `categoryOrQuery` | String | Search term or category used |
+| `sourceType` | String | API mode (QUERY, SPECIAL, CATEGORY) |
+| `scrapedAt` | String | ISO timestamp of data collection |
+
+---
+
+## Usage Examples
+
+### Basic Product Search
+
+Extract products from a keyword search:
 
 ```json
 {
-  "startUrls": [],
-  "country": "gb",
-  "language": "en",
+  "startUrls": [
+    {
+      "url": "https://www.ikea.com/gb/en/search/?q=chair"
+    }
+  ],
+  "maxProducts": 50
+}
+```
+
+### Category Collection
+
+Collect products from IKEA's new arrivals:
+
+```json
+{
   "category": "new-products",
-  "maxProducts": 50,
-  "maxPages": 5,
-  "collectDetails": true,
+  "country": "us",
+  "language": "en",
+  "maxProducts": 100,
+  "maxPages": 5
+}
+```
+
+### Multi-Country Research
+
+Compare product availability across markets:
+
+```json
+{
+  "startUrls": [
+    {
+      "url": "https://www.ikea.com/de/de/search/?q=sofa"
+    }
+  ],
+  "country": "de",
+  "language": "de",
+  "maxProducts": 25,
   "proxyConfiguration": {
     "useApifyProxy": true,
     "apifyProxyGroups": ["RESIDENTIAL"]
@@ -109,278 +118,110 @@ The scraper accepts the following input parameters:
 }
 ```
 
-### Custom Start URLs
+---
 
-You can provide specific IKEA URLs to scrape:
-
-```json
-{
-  "startUrls": [
-    "https://www.ikea.com/gb/en/new/new-products/",
-    "https://www.ikea.com/us/en/cat/furniture-fu001/",
-    "https://www.ikea.com/de/de/cat/storage-st001/"
-  ],
-  "maxProducts": 100,
-  "collectDetails": true
-}
-```
-
-## Output
-
-The scraper outputs structured product data in the following format:
-
-### Basic Output (when `collectDetails: false`)
+## Sample Output
 
 ```json
 {
-  "productId": "40604574",
-  "name": "CHOKLADHAJ Food storage box, set of 2, wood",
-  "price": 10.0,
+  "productId": "10605424",
+  "name": "SANDSBERG Chair",
+  "price": 10,
   "currency": "GBP",
-  "image": "https://www.ikea.com/...",
-  "url": "https://www.ikea.com/gb/en/p/chokladhaj-food-storage-box-set-of-2-wood-40604574/",
-  "rating": 5.0,
-  "reviewCount": 2,
-  "availability": "In stock",
-  "category": "new-products"
+  "image": "https://www.ikea.com/gb/en/images/products/sandsberg-chair-white__1390727_pe965548_s5.jpg",
+  "url": "https://www.ikea.com/gb/en/p/sandsberg-chair-white-10605424/",
+  "rating": 4.5,
+  "reviewCount": 20,
+  "availability": "Check availability",
+  "categoryOrQuery": "chair",
+  "sourceType": "QUERY",
+  "scrapedAt": "2026-02-14T06:58:14.195Z"
 }
 ```
 
-### Detailed Output (when `collectDetails: true`)
+---
 
-```json
-{
-  "productId": "40604574",
-  "name": "CHOKLADHAJ Food storage box, set of 2, wood",
-  "price": 10.0,
-  "currency": "GBP",
-  "description": "Store your food in sustainable and stylish containers...",
-  "measurements": "Length: 20 cm, Width: 15 cm, Height: 8 cm",
-  "type": "Storage",
-  "category": "new-products",
-  "images": [
-    "https://www.ikea.com/gb/en/images/products/...",
-    "https://www.ikea.com/gb/en/images/products/..."
-  ],
-  "features": [
-    "Made from sustainable materials",
-    "Stackable design saves space",
-    "Easy to clean"
-  ],
-  "rating": 5.0,
-  "reviewCount": 2,
-  "availability": "In stock",
-  "url": "https://www.ikea.com/gb/en/p/chokladhaj-food-storage-box-set-of-2-wood-40604574/",
-  "scrapedAt": "2025-12-28T10:30:00.000Z"
-}
-```
+## Tips for Best Results
 
-### Output Fields
+### Choose Effective Search Terms
+- Use specific product keywords like "dining chair" or "storage cabinet"
+- Start with popular categories like "new-products" or "furniture"
+- Test different search terms to find the most relevant results
 
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>productId</code></td>
-<td>String</td>
-<td>Unique IKEA product identifier</td>
-</tr>
-<tr>
-<td><code>name</code></td>
-<td>String</td>
-<td>Product name including variant details</td>
-</tr>
-<tr>
-<td><code>price</code></td>
-<td>Number</td>
-<td>Product price in local currency</td>
-</tr>
-<tr>
-<td><code>currency</code></td>
-<td>String</td>
-<td>Currency code (e.g., GBP, USD, EUR)</td>
-</tr>
-<tr>
-<td><code>description</code></td>
-<td>String</td>
-<td>Product description (detailed mode only)</td>
-</tr>
-<tr>
-<td><code>measurements</code></td>
-<td>String</td>
-<td>Product dimensions and specifications (detailed mode only)</td>
-</tr>
-<tr>
-<td><code>type</code></td>
-<td>String</td>
-<td>Product type or subcategory (detailed mode only)</td>
-</tr>
-<tr>
-<td><code>category</code></td>
-<td>String</td>
-<td>Main category being scraped</td>
-</tr>
-<tr>
-<td><code>image</code></td>
-<td>String</td>
-<td>Main product image URL</td>
-</tr>
-<tr>
-<td><code>images</code></td>
-<td>Array</td>
-<td>All product images (detailed mode only)</td>
-</tr>
-<tr>
-<td><code>features</code></td>
-<td>Array</td>
-<td>Product features and highlights (detailed mode only)</td>
-</tr>
-<tr>
-<td><code>rating</code></td>
-<td>Number</td>
-<td>Average customer rating (out of 5)</td>
-</tr>
-<tr>
-<td><code>reviewCount</code></td>
-<td>Number</td>
-<td>Total number of customer reviews</td>
-</tr>
-<tr>
-<td><code>availability</code></td>
-<td>String</td>
-<td>Stock availability status</td>
-</tr>
-<tr>
-<td><code>url</code></td>
-<td>String</td>
-<td>Direct link to product page</td>
-</tr>
-<tr>
-<td><code>scrapedAt</code></td>
-<td>String</td>
-<td>ISO timestamp of when data was scraped (detailed mode only)</td>
-</tr>
-</tbody>
-</table>
+### Optimize Collection Size
+- Start with smaller batches (20-50 products) for testing
+- Increase to hundreds or thousands for comprehensive research
+- Balance data volume with processing time
 
-## Performance and Limits
+### Select Appropriate Countries
+- Choose countries relevant to your market research
+- Consider language barriers for non-English markets
+- Test with your target market first
 
-<ul>
-<li><strong>Speed</strong> — Basic scraping: ~50-100 products per minute. Detailed scraping: ~20-30 products per minute</li>
-<li><strong>Concurrency</strong> — Optimized at 5 concurrent requests for IKEA servers</li>
-<li><strong>Deduplication</strong> — Automatically removes duplicate products based on product ID</li>
-<li><strong>Timeout</strong> — 90 seconds per request with 3 retry attempts</li>
-</ul>
+---
 
-## Best Practices
+## Integrations
 
-<ol>
-<li><strong>Use Proxy Configuration</strong> — Always enable Apify Proxy (residential proxies recommended) to prevent rate limiting and blocking</li>
-<li><strong>Set Reasonable Limits</strong> — Use <code>maxProducts</code> and <code>maxPages</code> to control scraping scope and costs</li>
-<li><strong>Choose Appropriate Detail Level</strong> — Disable <code>collectDetails</code> if you only need basic product information for faster results</li>
-<li><strong>Target Specific Categories</strong> — Use specific category URLs in <code>startUrls</code> for focused data collection</li>
-<li><strong>Monitor Results</strong> — Check the Output tab during runs to ensure data quality</li>
-<li><strong>Respect Rate Limits</strong> — The scraper is configured with appropriate delays and concurrency limits</li>
-</ol>
+Connect your IKEA product data with:
 
-## Supported Countries
+- **Google Sheets** — Export for collaborative analysis
+- **Airtable** — Build searchable product databases
+- **Slack** — Get notifications on new product launches
+- **Make** — Create automated price monitoring workflows
+- **Zapier** — Trigger actions based on price changes
+- **Power BI** — Visualize pricing and availability trends
 
-The scraper supports IKEA websites from these countries:
-
-<p>
-United Kingdom, United States, Germany, France, Sweden, Norway, Denmark, Finland, Netherlands, Belgium, Switzerland, Austria, Italy, Spain, Portugal, Poland, Czech Republic, Slovakia, Hungary, Romania, Croatia, Slovenia, Ireland, Canada, Australia, Japan, South Korea, China, Taiwan, Hong Kong, Singapore, Malaysia, Thailand, United Arab Emirates
-</p>
-
-## Troubleshooting
-
-<h3>No Results Returned</h3>
-
-<ul>
-<li>Verify the country code and language match the target IKEA website</li>
-<li>Check that <code>startUrls</code> are valid IKEA URLs</li>
-<li>Ensure proxy configuration is enabled</li>
-<li>Try increasing <code>maxPages</code> if scraping a large category</li>
-</ul>
-
-<h3>Incomplete Data</h3>
-
-<ul>
-<li>Enable <code>collectDetails: true</code> to extract full product information</li>
-<li>Some products may have limited information on IKEA's website</li>
-<li>Check the log for any error messages during scraping</li>
-</ul>
-
-<h3>Rate Limiting or Blocking</h3>
-
-<ul>
-<li>Ensure Apify Proxy is enabled with residential proxies</li>
-<li>Reduce concurrency by decreasing <code>maxProducts</code></li>
-<li>Add delays between requests if needed</li>
-</ul>
-
-<h3>Outdated Selectors</h3>
-
-<ul>
-<li>IKEA may update their website structure periodically</li>
-<li>The scraper uses both JSON API and HTML fallback methods for reliability</li>
-<li>Report issues if extraction fails consistently</li>
-</ul>
-
-## Integration
-
-<h3>API Access</h3>
-
-Access your scraped data via the Apify API:
-
-```bash
-curl "https://api.apify.com/v2/datasets/[DATASET_ID]/items"
-```
-
-<h3>Export Formats</h3>
+### Export Formats
 
 Download data in multiple formats:
-<ul>
-<li>JSON</li>
-<li>CSV</li>
-<li>Excel</li>
-<li>XML</li>
-<li>RSS</li>
-</ul>
 
-<h3>Webhooks</h3>
+- **JSON** — For developers and API integrations
+- **CSV** — For spreadsheet analysis and reporting
+- **Excel** — For business intelligence dashboards
+- **XML** — For enterprise system integrations
 
-Set up webhooks to receive notifications when scraping completes or integrate directly with your applications.
+---
 
-## Technical Details
+## Frequently Asked Questions
 
-<ul>
-<li><strong>Runtime</strong> — Node.js 22</li>
-<li><strong>Architecture</strong> — CheerioCrawler with gotScraping for efficient HTTP requests</li>
-<li><strong>Extraction Methods</strong> — Prioritizes JSON API extraction, falls back to HTML parsing</li>
-<li><strong>Memory Usage</strong> — Optimized for low memory consumption</li>
-<li><strong>Error Handling</strong> — Comprehensive error handling with automatic retries</li>
-</ul>
+### How many products can I collect?
+You can collect thousands of products. The practical limit depends on your search criteria and available products.
 
-## Support and Feedback
+### Can I scrape multiple countries?
+Yes, run separate actor instances for each country you want to research. Each run targets one country/language combination.
 
-<p>
-For issues, questions, or feature requests, please reach out through the Apify platform. We continuously improve the scraper based on user feedback and IKEA website changes.
-</p>
+### What if products are out of stock?
+Out-of-stock items are still included in results with appropriate availability status. This helps track inventory patterns.
 
-## Legal and Ethical Considerations
+### How current is the data?
+Data is collected in real-time from IKEA's live catalog. Prices and availability reflect current website information.
 
-<p>
-This scraper is intended for legitimate use cases such as price monitoring, market research, and data analysis. Users are responsible for ensuring their use complies with IKEA's terms of service and applicable laws. Always respect robots.txt directives and implement appropriate rate limiting. Do not use this tool to harm IKEA's infrastructure or for unauthorized commercial purposes.
-</p>
+### Can I monitor price changes over time?
+Yes, schedule regular runs to track price changes, new product launches, and availability updates.
 
-## Version History
+### What about product images?
+All product images are included as direct URLs. Images remain accessible as long as the product exists in IKEA's catalog.
 
-<ul>
-<li><strong>1.0.0</strong> — Initial release with multi-country support, JSON API extraction, and comprehensive product data collection</li>
-</ul>
+### How do I handle different currencies?
+Each product includes both price amount and currency code. Convert currencies using your preferred exchange rate service.
+
+### Can I filter by price range?
+Use the search functionality to find products within specific price ranges, or filter results after collection.
+
+---
+
+## Support
+
+For issues or feature requests, contact support through the Apify Console.
+
+### Resources
+
+- [Apify Documentation](https://docs.apify.com/)
+- [API Reference](https://docs.apify.com/api/v2)
+- [Scheduling Runs](https://docs.apify.com/schedules)
+
+---
+
+## Legal Notice
+
+This actor is designed for legitimate data collection purposes. Users are responsible for ensuring compliance with website terms of service and applicable laws. Use data responsibly and respect rate limits.

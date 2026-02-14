@@ -1,13 +1,13 @@
 {
   "title": "IKEA Product Scraper",
-  "description": "Extract product details from IKEA catalog including prices, images, ratings, and specifications. Supports multiple countries and categories.",
+  "description": "API-first IKEA product scraper. Fetches listing/search product data directly from internal API without visiting product detail pages.",
   "type": "object",
   "schemaVersion": 1,
   "properties": {
     "startUrls": {
       "title": "Start URLs",
       "type": "array",
-      "description": "List of IKEA URLs to scrape (e.g., category pages, search results, or specific product pages). Leave empty to use default new products page.",
+      "description": "Optional IKEA listing/search URLs. For search pages like https://www.ikea.com/gb/en/search/?q=chair, query is extracted and fetched through internal API.",
       "editor": "requestListSources",
       "default": [],
       "prefill": []
@@ -33,7 +33,7 @@
     "category": {
       "title": "Category",
       "type": "string",
-      "description": "Product category to scrape. Use 'new-products' for latest items, or specify other categories like 'furniture', 'storage', 'kitchens', etc.",
+      "description": "Category or fallback search term. Supports special new-page categories (e.g., 'new-products') and plain search terms.",
       "editor": "textfield",
       "default": "new-products",
       "prefill": "new-products"
@@ -50,19 +50,11 @@
     "maxPages": {
       "title": "Maximum Pages",
       "type": "integer",
-      "description": "Maximum number of listing pages to process (safety limit).",
+      "description": "Maximum API pagination windows to process (safety limit).",
       "editor": "number",
       "default": 2,
       "prefill": 2,
       "minimum": 1
-    },
-    "collectDetails": {
-      "title": "Collect Product Details",
-      "type": "boolean",
-      "description": "If enabled, visits each product page to extract full details (description, features, measurements, all images). Disable for faster scraping with basic info only.",
-      "editor": "checkbox",
-      "default": false,
-      "prefill": false
     },
     "proxyConfiguration": {
       "title": "Proxy Configuration",
