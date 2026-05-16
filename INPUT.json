@@ -8,9 +8,5 @@
   "language": "en",
   "category": "new-products",
   "maxProducts": 20,
-  "maxPages": 2,
-  "proxyConfiguration": {
-    "useApifyProxy": true,
-    "apifyProxyGroups": ["RESIDENTIAL"]
-  }
+  "maxPages": 2
 }

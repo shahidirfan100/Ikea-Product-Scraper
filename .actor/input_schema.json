@@ -62,12 +62,7 @@
       "description": "Proxy settings to avoid rate limiting and blocking. Residential proxies recommended for best results.",
       "editor": "proxy",
       "default": {
-        "useApifyProxy": true,
-        "apifyProxyGroups": ["RESIDENTIAL"]
-      },
-      "prefill": {
-        "useApifyProxy": true,
-        "apifyProxyGroups": ["RESIDENTIAL"]
+        "useApifyProxy": false
       }
     }
   },
